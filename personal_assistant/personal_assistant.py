@@ -2,7 +2,7 @@ import os
 import json
 import csv
 import datetime
-
+from typing import List, Optional
 
 NOTES_FILE = 'notes.json'
 
@@ -373,6 +373,130 @@ def calculator_menu():
             print("Некорректный выбор")
 
 
+class FinanceRecord:
+    def __init__(self, id: int, amount: float, category: str, date: str, description: str):
+        self.id = id  # уникальный идентификатор записи
+        self.amount = amount  # сумма операции (положительное число для доходов, отрицательное для расходов)
+        self.category = category  # категория операции (например, «Еда», «Транспорт», «Зарплата»)
+        self.date = date  # дата операции в формате ДД-ММ-ГГГГ
+        self.description = description  # описание операции
+
+
+class FinanceManager:
+    def __init__(self, filename: str):
+        self.filename = filename
+        self.records = self.load_from_json()
+
+    def add_finance_record(self, amount: float, category: str, date: str, description: str):
+        new_id = len(self.records) + 1  # Генерация нового уникального идентификатора
+        record = FinanceRecord(new_id, amount, category, date, description)
+        self.records.append(record)
+        self.save_to_json()
+
+    def view_finance_records(self, filter_by: Optional[str] = None) -> List[FinanceRecord]:
+        if filter_by:
+            return [record for record in self.records if record.category == filter_by or record.date == filter_by]
+        return self.records
+
+    def generate_report(self, start_date: str, end_date: str) -> List[FinanceRecord]:
+        return [record for record in self.records if start_date <= record.date <= end_date]
+
+    def export_to_csv(self, filename: str):
+        with open(filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['ID', 'Amount', 'Category', 'Date', 'Description'])
+            for record in self.records:
+                writer.writerow([record.id, record.amount, record.category, record.date, record.description])
+
+    def import_from_csv(self, filename: str):
+        with open(filename, mode='r') as file:
+            reader = csv.reader(file)
+            next(reader)  # Пропустить заголовок
+            for row in reader:
+                id = int(row[0])
+                amount = float(row[1])
+                category = row[2]
+                date = row[3]
+                description = row[4]
+                self.records.append(FinanceRecord(id, amount, category, date, description))
+            self.save_to_json()
+
+    def calculate_balance(self) -> float:
+        return sum(record.amount for record in self.records)
+
+    def group_by_category(self) -> dict:
+        categories = {}
+        for record in self.records:
+            if record.category not in categories:
+                categories[record.category] = 0
+            categories[record.category] += record.amount
+        return categories
+
+    def save_to_json(self):
+        with open(self.filename, 'w') as file:
+            json.dump([record.__dict__ for record in self.records], file)
+
+    def load_from_json(self) -> List[FinanceRecord]:
+        try:
+            with open(self.filename, 'r') as file:
+                records_data = json.load(file)
+                return [FinanceRecord(**data) for data in records_data]
+        except FileNotFoundError:
+            return []
+
+
+def finance_menu():
+    manager = FinanceManager('finance.json')
+    while True:
+        print("\nУправление финансовыми записями:")
+        print("1. Добавить запись")
+        print("2. Просмотреть записи")
+        print("3. Сгенерировать отчёт")
+        print("4. Экспорт в CSV")
+        print("5. Импорт из CSV")
+        print("6. Вернуться в главное меню")
+
+        choice = input("Введите номер действия: ")
+
+        if choice == '1':
+            amount = float(input("Введите сумму (положительное число для доходов и отрицательное для расходов): "))
+            category = input("Введите категорию операции: ")
+            date = input("Введите дату (ДД-ММ-ГГГГ): ")
+            description = input("Введите описание операции: ")
+            manager.add_finance_record(amount, category, date, description)
+            print("Запись добавлена.")
+
+        elif choice == '2':
+            filter_choice = input(
+                "Фильтровать по дате или категории? (введите дату или категорию или оставьте пустым для просмотра всех): ")
+            records = manager.view_finance_records(filter_choice)
+            for record in records:
+                print(
+                    f"ID: {record.id}, Сумма: {record.amount}, Категория: {record.category}, Дата: {record.date}, Описание: {record.description}")
+
+        elif choice == '3':
+            start_date = input("Введите начальную дату (ДД-ММ-ГГГГ): ")
+            end_date = input("Введите конечную дату (ДД-ММ-ГГГГ): ")
+            report = manager.generate_report(start_date, end_date)
+            for record in report:
+                print(
+                    f"ID: {record.id}, Сумма: {record.amount}, Категория: {record.category}, Дата: {record.date}, Описание: {record.description}")
+
+        elif choice == '4':
+            filename = input("Введите имя файла для экспорта (например finance.csv): ")
+            manager.export_to_csv(filename)
+            print(f"Записи экспортированы в {filename}.")
+
+        elif choice == '5':
+            filename = input("Введите имя файла для импорта (например finance.csv): ")
+            manager.import_from_csv(filename)
+            print(f"Записи импортированы из {filename}.")
+
+        elif choice == '6':
+            break
+
+
+
 
 def main_menu():
     while True:
@@ -392,11 +516,11 @@ def main_menu():
         elif choice == 3:
             contacts_menu()
         elif choice == 4:
-            print("Финансовый функционал в разработке...")
+            finance_menu()
         elif choice == 5:
             calculator_menu()
         elif choice == 6:
-            print("До свидания ^ _ ^")
+            print("До свидания")
             break
         else:
             print('Некорректный ввод\n')
