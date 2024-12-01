@@ -178,8 +178,199 @@ def notes_menu():
 
 
 
+class Task:
+    def __init__(self, task_id, description, deadline, status):
+        self.task_id = task_id
+        self.description = description
+        self.deadline = deadline
+        self.status = status
 
 
+class TaskManager:
+    def __init__(self):
+        self.tasks = []
+        self.load_tasks()
+
+    def load_tasks(self):
+        data = load_data('tasks.json', [])
+        self.tasks = [Task(**task) for task in data]
+
+    def save_tasks(self):
+        data = [task.__dict__ for task in self.tasks]
+        save_data('tasks.json', data)
+
+    def add_task(self, description, deadline):
+        task_id = max([task.task_id for task in self.tasks], default=0) + 1
+        new_task = Task(task_id, description, deadline, "Не выполнено")
+        self.tasks.append(new_task)
+        self.save_tasks()
+        print("Задача успешно добавлена")
+
+    def list_tasks(self):
+        if not self.tasks:
+            print("Список задач пуст")
+            return
+        for task in self.tasks:
+            print(f"{task.task_id}. {task.description} (Дедлайн: {task.deadline}, Статус: {task.status})")
+
+    def mark_task_done(self, task_id):
+        task = next((task for task in self.tasks if task.task_id == task_id), None)
+        if task:
+            task.status = "Выполнено"
+            self.save_tasks()
+            print("Задача отмечена как выполненная")
+        else:
+            print("Задача не найдена")
+
+    def delete_task(self, task_id):
+        task = next((task for task in self.tasks if task.task_id == task_id), None)
+        if task:
+            self.tasks.remove(task)
+            self.save_tasks()
+            print("Задача удалена")
+        else:
+            print("Задача не найдена")
+
+
+def tasks_menu():
+    manager = TaskManager()
+    while True:
+        print("Управление задачами:")
+        print("1. Добавить новую задачу")
+        print("2. Просмотреть задачи")
+        print("3. Отметить задачу выполненной")
+        print("4. Удалить задачу")
+        print("5. Назад")
+        choice = int(input("Введите номер действия: "))
+        if choice == 1:
+            description = input("Введите описание задачи: ")
+            deadline = input("Введите дедлайн (дд-мм-гггг): ")
+            manager.add_task(description, deadline)
+        elif choice == 2:
+            manager.list_tasks()
+        elif choice == 3:
+            try:
+                task_id = int(input("Введите ID задачи: "))
+                manager.mark_task_done(task_id)
+            except ValueError:
+                print("Некорректный ID")
+        elif choice == 4:
+            try:
+                task_id = int(input("Введите ID задачи: "))
+                manager.delete_task(task_id)
+            except ValueError:
+                print("Некорректный ID")
+        elif choice == 5:
+            break
+        else:
+            print("Некорректный выбор")
+
+
+
+class Contact:
+    def __init__(self, contact_id, name, phone, email):
+        self.contact_id = contact_id
+        self.name = name
+        self.phone = phone
+        self.email = email
+
+
+class ContactManager:
+    def __init__(self):
+        self.contacts = []
+        self.load_contacts()
+
+    def load_contacts(self):
+        data = load_data('contacts.json', [])
+        self.contacts = [Contact(**contact) for contact in data]
+
+    def save_contacts(self):
+        data = [contact.__dict__ for contact in self.contacts]
+        save_data('contacts.json', data)
+
+    def add_contact(self, name, phone, email):
+        contact_id = max([contact.contact_id for contact in self.contacts], default=0) + 1
+        new_contact = Contact(contact_id, name, phone, email)
+        self.contacts.append(new_contact)
+        self.save_contacts()
+        print("Контакт успешно добавлен")
+
+    def list_contacts(self):
+        if not self.contacts:
+            print("Список контактов пуст")
+            return
+        for contact in self.contacts:
+            print(f"{contact.contact_id}. {contact.name} (Телефон: {contact.phone}, Email: {contact.email})")
+
+    def delete_contact(self, contact_id):
+        contact = next((contact for contact in self.contacts if contact.contact_id == contact_id), None)
+        if contact:
+            self.contacts.remove(contact)
+            self.save_contacts()
+            print("Контакт удален")
+        else:
+            print("Контакт не найден")
+
+
+def contacts_menu():
+    manager = ContactManager()
+    while True:
+        print("Управление контактами:")
+        print("1. Добавить контакт")
+        print("2. Просмотреть контакты")
+        print("3. Удалить контакт")
+        print("4. Назад")
+        choice = int(input("Введите номер действия: "))
+        if choice == 1:
+            name = input("Введите имя контакта: ")
+            phone = input("Введите телефон контакта: ")
+            email = input("Введите email контакта: ")
+            manager.add_contact(name, phone, email)
+        elif choice == 2:
+            manager.list_contacts()
+        elif choice == 3:
+            try:
+                contact_id = int(input("Введите ID контакта: "))
+                manager.delete_contact(contact_id)
+            except ValueError:
+                print("Некорректный ID")
+        elif choice == 4:
+            break
+        else:
+            print("Некорректный выбор")
+
+
+
+def calculator_menu():
+    while True:
+        print("Калькулятор:")
+        print("1. Сложение")
+        print("2. Вычитание")
+        print("3. Умножение")
+        print("4. Деление")
+        print("5. Назад")
+        choice = int(input("Введите номер действия: "))
+        if choice in (1, 2, 3, 4):
+            try:
+                a = float(input("Введите первое число: "))
+                b = float(input("Введите второе число: "))
+                if choice == 1:
+                    print(f"Результат: {a + b}")
+                elif choice == 2:
+                    print(f"Результат: {a - b}")
+                elif choice == 3:
+                    print(f"Результат: {a * b}")
+                elif choice == 4:
+                    if b == 0:
+                        print("Ошибка: деление на ноль")
+                    else:
+                        print(f"Результат: {a / b}")
+            except ValueError:
+                print("Некорректный ввод")
+        elif choice == 5:
+            break
+        else:
+            print("Некорректный выбор")
 
 
 
@@ -196,14 +387,26 @@ def main_menu():
         choice = int(input("Введите номер действия: "))
         if choice == 1:
             notes_menu()
+        elif choice == 2:
+            tasks_menu()
+        elif choice == 3:
+            contacts_menu()
+        elif choice == 4:
+            print("Финансовый функционал в разработке...")
+        elif choice == 5:
+            calculator_menu()
         elif choice == 6:
             print("До свидания ^ _ ^")
+            break
         else:
             print('Некорректный ввод\n')
 
 
+
 if __name__ == '__main__':
     main_menu()
+
+
 
 
 
