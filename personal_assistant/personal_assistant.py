@@ -2,22 +2,32 @@ import os
 import json
 import csv
 import datetime
-from typing import List, Optional
 
 NOTES_FILE = 'notes.json'
+TASKS_FILE = 'tasks.json'
+CONTACTS_FILE = 'contacts.json'
+FINANCE_FILE = 'finance.json'
 
 
 def save_data(file_path, data):
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    with open(file_path, 'w', encoding='utf-8') as file:
+        json.dump(data, file, ensure_ascii=False, indent=4)
 
 
 def load_data(file_path, default_data):
     if not os.path.exists(file_path):
         save_data(file_path, default_data)
         return default_data
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return json.load(file)
+
+
+def is_valid_date(date_str):
+    try:
+        datetime.datetime.strptime(date_str, '%d-%m-%Y')
+        return True
+    except ValueError:
+        return False
 
 
 class Note:
@@ -43,20 +53,20 @@ class NoteManager:
 
     def add_note(self, title, content):
         note_id = max([note.note_id for note in self.notes], default=0) + 1
-        timestamp = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         new_note = Note(note_id, title, content, timestamp)
         self.notes.append(new_note)
         self.save_notes()
-        print("Заметка успешно добавлена")
+        print('Заметка успешно добавлена')
 
     def list_notes(self):
         if not self.notes:
-            print("Список заметок пуст")
+            print('Список заметок пуст')
             return
         for note in self.notes:
-            print(f"{note.note_id}. {note.title} (дата: {note.timestamp})")
+            print(f'{note.note_id}. {note.title} (дата: {note.timestamp})')
 
-    def get_note_by_id(self, note_id):
+    def get_note_by_id(self, note_id) -> Note:
         for note in self.notes:
             if note.note_id == note_id:
                 return note
@@ -65,22 +75,22 @@ class NoteManager:
     def view_note(self, note_id):
         note = self.get_note_by_id(note_id)
         if note:
-            print(f"Заголовок: {note.title}")
-            print(f"Содержимое: {note.content}")
-            print(f"Дата создания / изменения: {note.timestamp}")
+            print(f'Заголовок: {note.title}')
+            print(f'Содержимое: {note.content}')
+            print(f'Дата последнего изменения: {note.timestamp}')
         else:
-            print("Заметка не найдена")
+            print('Заметка не найдена')
 
     def edit_note(self, note_id, new_title, new_content):
         note = self.get_note_by_id(note_id)
         if note:
             note.title = new_title
             note.content = new_content
-            note.timestamp = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            note.timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             self.save_notes()
-            print('Заметка успешно изменена')
+            print('Заметка успешно отредактирована')
         else:
-            print('Заметка не найдена')
+            print('Заметка не найдена')
 
     def delete_note(self, note_id):
         note = self.get_note_by_id(note_id)
@@ -89,101 +99,102 @@ class NoteManager:
             self.save_notes()
             print('Заметка успешно удалена')
         else:
-            print('Заметка не найдена')
+            print('Заметка не найдена')
 
     def export_notes_to_csv(self):
         if not self.notes:
-            print("Список заметок пуст")
+            print('Список заметок пуст')
             return
-        file_name = "notes_export.csv"
-        with open(file_name, 'w', encoding='utf-8', newline='') as f:
-            fieldnames = ['id', 'Заголовок', 'Содержимое', 'Дата']
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+        file_name = 'notes.csv'
+        with open(file_name, 'w', newline='\n\n', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=['ID', 'Заголовок', 'Содержимое', 'Дата'])
             writer.writeheader()
             for note in self.notes:
                 writer.writerow({
-                    "id": note.note_id,
+                    'ID': note.note_id,
                     'Заголовок': note.title,
                     'Содержимое': note.content,
                     'Дата': note.timestamp
                 })
-            print(f"Заметки успешно экспортированы в файл {file_name}")
+        print(f'Заметки успешно экспортированы в файл {file_name}')
 
-    def import_notes_to_csv(self):
+    def import_notes_from_csv(self):
         file_name = input('Введите имя CSV-файла: ')
         if not os.path.exists(file_name):
-            print("Файл не найден")
+            print(f'Файл {file_name} не найден')
             return
-        with open(file_name, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
+        with open(file_name, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
             for row in reader:
                 note_id = max([note.note_id for note in self.notes], default=0) + 1
                 title = row.get('Заголовок', '')
                 content = row.get('Содержимое', '')
-                timestamp = row.get('Дата', datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S"))
+                timestamp = row.get('Дата', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                 new_note = Note(note_id, title, content, timestamp)
                 self.notes.append(new_note)
-                self.save_notes()
-
-
+            self.save_notes()
+        print(f'Заметки успешно импортированы из файла {file_name}')
 
 
 def notes_menu():
     manager = NoteManager()
     while True:
-        print("Управление заметками:")
-        print("1. Добавить новую заметку")
-        print("2. Посмотреть список заметок")
-        print("3. Посмотреть заметку")
-        print("4. Редактировать заметку")
-        print("5. Удалить заметку")
-        print("6. Экспорт заметок в CSV")
-        print("7. Импорт заметок из CSV")
-        print("8. Назад")
-        choice = int(input("Введите номер действия: "))
-        if choice == 1:
-            title = input("Введите заголовок заметки: ")
-            content = input("Введите содержимое заметки: ")
+        print('Управление заметками:')
+        print('1. Добавить новую заметку')
+        print('2. Просмотреть список заметок')
+        print('3. Посмотреть заметку')
+        print('4. Редактировать заметку')
+        print('5. Удалить заметку')
+        print('6. Экспорт заметок в CSV')
+        print('7. Импорт заметок из CSV')
+        print('8. Назад')
+
+        choise = int(input('Введите номер действия: '))
+
+        if choise == 1:
+            title = input('Введите заголовок заметки: ')
+            content = input('Введите содержание заметки: ')
             manager.add_note(title, content)
-        elif choice == 2:
+        elif choise == 2:
             manager.list_notes()
-        elif choice == 3:
+        elif choise == 3:
             try:
-                note_id = int(input("Введите ID заметки: "))
+                note_id = int(input('Введите ID заметки: '))
                 manager.view_note(note_id)
             except ValueError:
-                print("Некорректный ID")
-        elif choice == 4:
+                print('ID заметки не корректен')
+        elif choise == 4:
             try:
-                note_id = int(input("Введите ID заметки: "))
-                new_title = input("Введите заголовок заметки: ")
-                new_content = input("Введите содержимое заметки: ")
+                note_id = int(input('Введите ID заметки: '))
+                new_title = input('Введите новый заголовок заметки: ')
+                new_content = input('Введите новое содержание заметки: ')
                 manager.edit_note(note_id, new_title, new_content)
             except ValueError:
-                print("Некорректный ID")
-        elif choice == 5:
+                print('ID заметки не корректен')
+        elif choise == 5:
             try:
-                note_id = int(input("Введите ID заметки: "))
+                note_id = int(input('Введите ID заметки: '))
                 manager.delete_note(note_id)
             except ValueError:
-                print("Некорректный ID")
-        elif choice == 6:
+                print('ID заметки не корректен')
+        elif choise == 6:
             manager.export_notes_to_csv()
-        elif choice == 7:
-            manager.import_notes_to_csv()
-        elif choice == 8:
+        elif choise == 7:
+            manager.import_notes_from_csv()
+        elif choise == 8:
             break
         else:
-            print("Некорректный выбор")
-
+            print('Неверный номер действия, попробуйте снова')
 
 
 class Task:
-    def __init__(self, task_id, description, deadline, status):
+    def __init__(self, task_id, title, description, done=False, priority="Средний", due_date=None):
         self.task_id = task_id
+        self.title = title
         self.description = description
-        self.deadline = deadline
-        self.status = status
+        self.done = done
+        self.priority = priority
+        self.due_date = due_date
 
 
 class TaskManager:
@@ -192,79 +203,168 @@ class TaskManager:
         self.load_tasks()
 
     def load_tasks(self):
-        data = load_data('tasks.json', [])
+        data = load_data(TASKS_FILE, [])
         self.tasks = [Task(**task) for task in data]
 
     def save_tasks(self):
         data = [task.__dict__ for task in self.tasks]
-        save_data('tasks.json', data)
+        save_data(TASKS_FILE, data)
 
-    def add_task(self, description, deadline):
+    def add_task(self, title, description, priority="Средний", due_date=None):
+        valid_priorities = ['Низкий', 'Средний', 'Высокий']
+        if priority not in valid_priorities:
+            print("Ошибка: Некорректное значение приоритета. Выберите из: Низкий, Средний, Высокий.")
+            return
+        try:
+            datetime.datetime.strptime(due_date, '%d-%m-%Y')  # Проверка формата ДД-ММ-ГГГГ
+        except ValueError:
+            print("Ошибка: Некорректный формат даты. Укажите дату в формате ДД-ММ-ГГГГ.")
+            return
         task_id = max([task.task_id for task in self.tasks], default=0) + 1
-        new_task = Task(task_id, description, deadline, "Не выполнено")
+        new_task = Task(task_id, title, description, done=False, priority=priority, due_date=due_date)
         self.tasks.append(new_task)
         self.save_tasks()
-        print("Задача успешно добавлена")
+        print('Задача успешно добавлена')
 
     def list_tasks(self):
         if not self.tasks:
-            print("Список задач пуст")
+            print("Список задач пуст.")
             return
         for task in self.tasks:
-            print(f"{task.task_id}. {task.description} (Дедлайн: {task.deadline}, Статус: {task.status})")
+            status = "Выполнена" if task.done else "Не выполнена"
+            due_date = task.due_date if task.due_date else "Не указано"
+            print(
+                f"ID: {task.task_id}, Заголовок: {task.title}, Статус: {status}, Приоритет: {task.priority}, Срок: {due_date}")
+            print(f"Описание: {task.description}")
 
     def mark_task_done(self, task_id):
-        task = next((task for task in self.tasks if task.task_id == task_id), None)
+        task = self.get_task_by_id(task_id)
         if task:
-            task.status = "Выполнено"
+            task.done = True
             self.save_tasks()
-            print("Задача отмечена как выполненная")
+            print('Задача успешно выполнена')
         else:
-            print("Задача не найдена")
+            print('Задача не найдена')
+
+    def get_task_by_id(self, task_id):
+        for task in self.tasks:
+            if task.task_id == task_id:
+                return task
+        return None
+
+    def edit_task(self, task_id, new_title=None, new_description=None, new_priority=None, new_due_date=None):
+        task = self.get_task_by_id(task_id)
+        if task:
+            task.title = new_title or task.title
+            task.description = new_description or task.description
+            task.priority = new_priority or task.priority
+            task.due_date = new_due_date or task.due_date
+            self.save_tasks()
+            print('Задача успешно отредактирована')
+        else:
+            print('Задача не найдена')
 
     def delete_task(self, task_id):
-        task = next((task for task in self.tasks if task.task_id == task_id), None)
+        task = self.get_task_by_id(task_id)
         if task:
             self.tasks.remove(task)
             self.save_tasks()
-            print("Задача удалена")
+            print('Задача успешно удалена')
         else:
-            print("Задача не найдена")
+            print('Задача не найдена')
+
+    def export_tasks_to_csv(self):
+        if not self.tasks:
+            print('Список задач пуст')
+            return
+        file_name = 'tasks.csv'
+        with open(file_name, 'w', newline='\n', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=['ID', 'Заголовок', 'Описание', 'Статус', 'Приоритет', 'Срок'])
+            writer.writeheader()
+            for task in self.tasks:
+                writer.writerow({
+                    'ID': task.task_id,
+                    'Заголовок': task.title,
+                    'Описание': task.description,
+                    'Статус': 'Выполненo' if task.done else 'Не выполненo',
+                    'Приоритет': task.priority,
+                    'Срок': task.due_date
+                })
+        print(f'Задачи успешно экспортированы в файл {file_name}')
+
+    def import_tasks_from_csv(self):
+        file_name = input('Введите имя CSV-файла: ')
+        if not os.path.exists(file_name):
+            print(f'Файл {file_name} не найден')
+            return
+        with open(file_name, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                task_id = max([task.task_id for task in self.tasks], default=0) + 1
+                title = row.get('Заголовок', '')
+                description = row.get('Описание', '')
+                done = row.get('Статус', 'Не выполненo') == 'Выполненo'
+                priority = row.get('Приоритет', 'Средний')
+                due_date = row.get('Срок', None)
+                new_task = Task(task_id, title, description, done, priority, due_date)
+                self.tasks.append(new_task)
+            self.save_tasks()
+        print(f'Задачи успешно импортированы из файла {file_name}')
 
 
 def tasks_menu():
     manager = TaskManager()
     while True:
-        print("Управление задачами:")
-        print("1. Добавить новую задачу")
-        print("2. Просмотреть задачи")
-        print("3. Отметить задачу выполненной")
-        print("4. Удалить задачу")
-        print("5. Назад")
-        choice = int(input("Введите номер действия: "))
-        if choice == 1:
-            description = input("Введите описание задачи: ")
-            deadline = input("Введите дедлайн (дд-мм-гггг): ")
-            manager.add_task(description, deadline)
-        elif choice == 2:
+        print('Управление задачами:')
+        print('1. Добавить новую задачу')
+        print('2. Просмотреть список задач')
+        print('3. Отметить задачу как выполненную')
+        print('4. Редактировать задачу')
+        print('5. Удалить задачу')
+        print('6. Экспортировать задачи в CSV')
+        print('7. Импортировать задачи из CSV')
+        print('8. Назад')
+
+        choise = int(input('Введите номер действия: '))
+
+        if choise == 1:
+            title = input('Введите заголовок задачи: ')
+            description = input('Введите описание задачи: ')
+            priority = input('Введите приоритет задачи (Низкий, Средний, Высокий): ').strip()
+            due_date = input('Введите срок выполнения задачи (ДД-ММ-ГГГГ): ').strip()
+            manager.add_task(title, description, priority, due_date)
+        elif choise == 2:
             manager.list_tasks()
-        elif choice == 3:
+        elif choise == 3:
             try:
-                task_id = int(input("Введите ID задачи: "))
+                task_id = int(input('Введите ID задачи: '))
                 manager.mark_task_done(task_id)
             except ValueError:
-                print("Некорректный ID")
-        elif choice == 4:
+                print('ID задачи не корректен')
+        elif choise == 4:
             try:
-                task_id = int(input("Введите ID задачи: "))
+                task_id = int(input('Введите ID задачи: '))
+                new_title = input('Введите новый заголовок задачи: ')
+                new_description = input('Введите новое описание задачи: ')
+                new_priority = input('Введите новый приоритет задачи (Низкий, Средний, Высокий): ')
+                new_due_date = input('Введите новый срок выполнения задачи (ДД-ММ-ГГГГ): ')
+                manager.edit_task(task_id, new_title, new_description, new_priority, new_due_date)
+            except ValueError:
+                print('ID задачи не корректен')
+        elif choise == 5:
+            try:
+                task_id = int(input('Введите ID задачи: '))
                 manager.delete_task(task_id)
             except ValueError:
-                print("Некорректный ID")
-        elif choice == 5:
+                print('ID задачи не корректен')
+        elif choise == 6:
+            manager.export_tasks_to_csv()
+        elif choise == 7:
+            manager.import_tasks_from_csv()
+        elif choise == 8:
             break
         else:
-            print("Некорректный выбор")
-
+            print('Неверный номер действия, попробуйте снова')
 
 
 class Contact:
@@ -281,257 +381,437 @@ class ContactManager:
         self.load_contacts()
 
     def load_contacts(self):
-        data = load_data('contacts.json', [])
+        data = load_data(CONTACTS_FILE, [])
         self.contacts = [Contact(**contact) for contact in data]
 
     def save_contacts(self):
         data = [contact.__dict__ for contact in self.contacts]
-        save_data('contacts.json', data)
+        save_data(CONTACTS_FILE, data)
 
     def add_contact(self, name, phone, email):
         contact_id = max([contact.contact_id for contact in self.contacts], default=0) + 1
         new_contact = Contact(contact_id, name, phone, email)
         self.contacts.append(new_contact)
         self.save_contacts()
-        print("Контакт успешно добавлен")
+        print('Контакт успешно добавлен')
 
-    def list_contacts(self):
-        if not self.contacts:
-            print("Список контактов пуст")
-            return
-        for contact in self.contacts:
-            print(f"{contact.contact_id}. {contact.name} (Телефон: {contact.phone}, Email: {contact.email})")
+    def search_contacts(self, query):
+        results = [
+            contact for contact in self.contacts
+            if query.lower() in contact.name.lower() or query in contact.phone
+        ]
+        if results:
+            print('Результаты поиска:')
+            for contact in results:
+                print(
+                    f'ID: {contact.contact_id}, Имя: {contact.name}, Телефон: {contact.phone}, Электронная почта: {contact.email}')
+        else:
+            print('Ничего не найдено')
+
+    def edit_contact(self, contact_id, new_name, new_phone, new_email):
+        contact = self.get_contact_by_id(contact_id)
+        if contact:
+            contact.name = new_name
+            contact.phone = new_phone
+            contact.email = new_email
+            self.save_contacts()
+            print('Контакт успешно отредактирован')
+        else:
+            print('Контакт не найден')
 
     def delete_contact(self, contact_id):
-        contact = next((contact for contact in self.contacts if contact.contact_id == contact_id), None)
+        contact = self.get_contact_by_id(contact_id)
         if contact:
             self.contacts.remove(contact)
             self.save_contacts()
-            print("Контакт удален")
+            print('Контакт успешно удален')
         else:
-            print("Контакт не найден")
+            print('Контакт не найден')
+
+    def get_contact_by_id(self, contact_id):
+        for contact in self.contacts:
+            if contact.contact_id == contact_id:
+                return contact
+        return None
+
+    def export_contacts_to_csv(self):
+        if not self.contacts:
+            print('Контакты не найдены')
+            return
+
+        file_name = 'contacts.csv'
+
+        with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=['ID', 'Имя', 'Телефон', 'Электронная почта'])
+            writer.writeheader()
+            for contact in self.contacts:
+                writer.writerow({
+                    'ID': contact.contact_id,
+                    'Имя': contact.name,
+                    'Телефон': contact.phone,
+                    'Электронная почта': contact.email
+                })
+
+        print(f'Контакты успешно экспортированы в файл {CONTACTS_FILE}')
+
+    def import_contacts_from_csv(self):
+        file_name = input('Введите имя CSV-файла: ')
+        if not os.path.exists(file_name):
+            print(f'Файл {file_name} не найден')
+            return
+        with open(file_name, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                contact_id = int(row['ID'])
+                name = row['Имя']
+                phone = row['Телефон']
+                email = row['Электронная почта']
+                new_contact = Contact(contact_id, name, phone, email)
+                self.contacts.append(new_contact)
+            self.save_contacts()
+        print(f'Контакты успешно импортированы из файла {file_name}')
 
 
 def contacts_menu():
     manager = ContactManager()
+
     while True:
-        print("Управление контактами:")
-        print("1. Добавить контакт")
-        print("2. Просмотреть контакты")
-        print("3. Удалить контакт")
-        print("4. Назад")
-        choice = int(input("Введите номер действия: "))
-        if choice == 1:
-            name = input("Введите имя контакта: ")
-            phone = input("Введите телефон контакта: ")
-            email = input("Введите email контакта: ")
+        print('Управление контактами:')
+        print('1. Добавить новый контакт')
+        print('2. Найти контакт')
+        print('3. Редактировать контакт')
+        print('4. Удалить контакт')
+        print('5. Экспортировать контакты в CSV')
+        print('6. Импортировать контакты из CSV')
+        print('7. Назад')
+
+        choise = int(input('Введите номер действия: '))
+
+        if choise == 1:
+            name = input('Введите имя контакта: ')
+            phone = input('Введите номер телефона контакта: ')
+            email = input('Введите электронную почту контакта: ')
             manager.add_contact(name, phone, email)
-        elif choice == 2:
-            manager.list_contacts()
-        elif choice == 3:
+        elif choise == 2:
+            query = input('Введите имя или номер телефона контакта для поиска: ')
+            manager.search_contacts(query)
+        elif choise == 3:
             try:
-                contact_id = int(input("Введите ID контакта: "))
+                contact_id = int(input('Введите ID контакта: '))
+                new_name = input('Введите новое имя контакта: ')
+                new_phone = input('Введите новый номер телефона контакта: ')
+                new_email = input('Введите новую электронную почту контакта: ')
+                manager.edit_contact(contact_id, new_name, new_phone, new_email)
+            except ValueError:
+                print('Неверный формат ID контакта')
+        elif choise == 4:
+            try:
+                contact_id = int(input('Введите ID контакта: '))
                 manager.delete_contact(contact_id)
             except ValueError:
-                print("Некорректный ID")
-        elif choice == 4:
+                print('Неверный формат ID контакта')
+        elif choise == 5:
+            manager.export_contacts_to_csv()
+        elif choise == 6:
+            manager.import_contacts_from_csv()
+        elif choise == 7:
             break
         else:
-            print("Некорректный выбор")
-
-
-
-def calculator_menu():
-    while True:
-        print("Калькулятор:")
-        print("1. Сложение")
-        print("2. Вычитание")
-        print("3. Умножение")
-        print("4. Деление")
-        print("5. Назад")
-        choice = int(input("Введите номер действия: "))
-        if choice in (1, 2, 3, 4):
-            try:
-                a = float(input("Введите первое число: "))
-                b = float(input("Введите второе число: "))
-                if choice == 1:
-                    print(f"Результат: {a + b}")
-                elif choice == 2:
-                    print(f"Результат: {a - b}")
-                elif choice == 3:
-                    print(f"Результат: {a * b}")
-                elif choice == 4:
-                    if b == 0:
-                        print("Ошибка: деление на ноль")
-                    else:
-                        print(f"Результат: {a / b}")
-            except ValueError:
-                print("Некорректный ввод")
-        elif choice == 5:
-            break
-        else:
-            print("Некорректный выбор")
+            print('Неверный номер действия, попробуйте снова')
 
 
 class FinanceRecord:
-    def __init__(self, id: int, amount: float, category: str, date: str, description: str):
-        self.id = id  # уникальный идентификатор записи
-        self.amount = amount  # сумма операции (положительное число для доходов, отрицательное для расходов)
-        self.category = category  # категория операции (например, «Еда», «Транспорт», «Зарплата»)
-        self.date = date  # дата операции в формате ДД-ММ-ГГГГ
-        self.description = description  # описание операции
+    def __init__(self, record_id, description, amount, category, date):
+        self.record_id = record_id
+        self.description = description
+        self.amount = amount
+        self.category = category
+        self.date = date
 
 
 class FinanceManager:
-    def __init__(self, filename: str):
-        self.filename = filename
-        self.records = self.load_from_json()
+    def __init__(self):
+        self.records = []
+        self.load_records()
 
-    def add_finance_record(self, amount: float, category: str, date: str, description: str):
-        new_id = len(self.records) + 1  # Генерация нового уникального идентификатора
-        record = FinanceRecord(new_id, amount, category, date, description)
-        self.records.append(record)
-        self.save_to_json()
+    def load_records(self):
+        data = load_data(FINANCE_FILE, [])
+        self.records = [FinanceRecord(**record) for record in data]
 
-    def view_finance_records(self, filter_by: Optional[str] = None) -> List[FinanceRecord]:
-        if filter_by:
-            return [record for record in self.records if record.category == filter_by or record.date == filter_by]
-        return self.records
+    def save_records(self):
+        data = [record.__dict__ for record in self.records]
+        save_data(FINANCE_FILE, data)
 
-    def generate_report(self, start_date: str, end_date: str) -> List[FinanceRecord]:
-        return [record for record in self.records if start_date <= record.date <= end_date]
+    def add_record(self, description, amount, category, date):
+        record_id = max([record.record_id for record in self.records], default=0) + 1
+        new_record = FinanceRecord(record_id, description, amount, category, date)
+        self.records.append(new_record)
+        self.save_records()
+        print('Запись успешно добавлена')
 
-    def export_to_csv(self, filename: str):
-        with open(filename, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['ID', 'Amount', 'Category', 'Date', 'Description'])
+    def view_records(self, filter_date=None, filter_category=None):
+        filtered_records = self.records
+        if filter_date:
+            filtered_records = [record for record in filtered_records if record.date == filter_date]
+        if filter_category:
+            filtered_records = [record for record in filtered_records if
+                                record.category.lower() == filter_category.lower()]
+        if not filtered_records:
+            print('Ничего не найдено')
+            return
+        for record in filtered_records:
+            print(
+                f'ID: {record.record_id}, Описание: {record.description}, Сумма: {record.amount}, Категория: {record.category}, Дата: {record.date}')
+
+    def generate_report(self, start_date, end_date):
+        try:
+            start = datetime.datetime.strptime(start_date, "%d-%m-%Y")
+            end = datetime.datetime.strptime(end_date, "%d-%m-%Y")
+        except ValueError:
+            print("Некорректный формат даты. Используйте ДД-ММ-ГГГГ.")
+            return
+
+        filtered_records = [
+            record for record in self.records
+            if start <= datetime.datetime.strptime(record.date, "%d-%m-%Y") <= end
+        ]
+        if not filtered_records:
+            print("Нет записей за указанный период.")
+            return
+
+        income = sum(record.amount for record in filtered_records if record.amount > 0)
+        expenses = sum(record.amount for record in filtered_records if record.amount < 0)
+
+        print(f"Отчёт с {start_date} по {end_date}:")
+        print(f"Общий доход: {income}")
+        print(f"Общие расходы: {abs(expenses)}")
+        print(f"Баланс: {income + expenses}")
+
+    def export_records_to_csv(self):
+        if not self.records:
+            print('Записи не найдены')
+            return
+
+        file_name = 'records.csv'
+        with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=['ID', 'Описание', 'Сумма', 'Категория', 'Дата'])
+            writer.writeheader()
             for record in self.records:
-                writer.writerow([record.id, record.amount, record.category, record.date, record.description])
+                writer.writerow({
+                    'ID': record.record_id,
+                    'Описание': record.description,
+                    'Сумма': record.amount,
+                    'Категория': record.category,
+                    'Дата': record.date
+                })
 
-    def import_from_csv(self, filename: str):
-        with open(filename, mode='r') as file:
-            reader = csv.reader(file)
-            next(reader)  # Пропустить заголовок
+        print(f'Записи успешно экспортированы в файл {file_name}')
+
+    def import_records_from_csv(self):
+        file_name = input('Введите имя CSV-файла: ')
+
+        if not os.path.exists(file_name):
+            print(f'Файл {file_name} не найден')
+            return
+
+        with open(file_name, 'r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
             for row in reader:
-                id = int(row[0])
-                amount = float(row[1])
-                category = row[2]
-                date = row[3]
-                description = row[4]
-                self.records.append(FinanceRecord(id, amount, category, date, description))
-            self.save_to_json()
+                record_id = max([record.record_id for record in self.records], default=0) + 1
+                description = row.get('Описание', '')
+                amount = float(row.get('Сумма', 0))
+                category = row.get('Категория', '')
+                date = row.get('Дата', '')
+                new_record = FinanceRecord(record_id, description, amount, category, date)
+                self.records.append(new_record)
+            self.save_records()
 
-    def calculate_balance(self) -> float:
-        return sum(record.amount for record in self.records)
+        print(f'Записи успешно импортированы из файла {FINANCE_FILE}')
 
-    def group_by_category(self) -> dict:
+    def calculate_balance(self):
+        income = sum(record.amount for record in self.records if record.amount > 0)
+        expense = sum(record.amount for record in self.records if record.amount < 0)
+        print(f'Итоговый баланс: {income + expense}')
+
+    def group_by_category(self):
         categories = {}
         for record in self.records:
-            if record.category not in categories:
-                categories[record.category] = 0
+            categories.setdefault(record.category, 0)
             categories[record.category] += record.amount
-        return categories
-
-    def save_to_json(self):
-        with open(self.filename, 'w') as file:
-            json.dump([record.__dict__ for record in self.records], file)
-
-    def load_from_json(self) -> List[FinanceRecord]:
-        try:
-            with open(self.filename, 'r') as file:
-                records_data = json.load(file)
-                return [FinanceRecord(**data) for data in records_data]
-        except FileNotFoundError:
-            return []
+        print('Суммы по категориям:')
+        for category, total in categories.items():
+            print(f'{category}: {total}')
 
 
 def finance_menu():
-    manager = FinanceManager('finance.json')
+    manager = FinanceManager()
+
     while True:
-        print("\nУправление финансовыми записями:")
-        print("1. Добавить запись")
-        print("2. Просмотреть записи")
-        print("3. Сгенерировать отчёт")
-        print("4. Экспорт в CSV")
-        print("5. Импорт из CSV")
-        print("6. Вернуться в главное меню")
+        print('Управление финансовыми записями:')
+        print('1. Добавить запись')
+        print('2. Просмотреть записи')
+        print('3. Сформировать отчет')
+        print('4. Экспортировать записи в CSV')
+        print('5. Импортировать записи из CSV')
+        print('6. Рассчитать итоговый баланс')
+        print('7. Группировка по категориям')
+        print('8. Назад')
 
-        choice = input("Введите номер действия: ")
+        choise = int(input('Введите номер действия: '))
 
-        if choice == '1':
-            amount = float(input("Введите сумму (положительное число для доходов и отрицательное для расходов): "))
-            category = input("Введите категорию операции: ")
-            date = input("Введите дату (ДД-ММ-ГГГГ): ")
-            description = input("Введите описание операции: ")
-            manager.add_finance_record(amount, category, date, description)
-            print("Запись добавлена.")
-
-        elif choice == '2':
-            filter_choice = input(
-                "Фильтровать по дате или категории? (введите дату или категорию или оставьте пустым для просмотра всех): ")
-            records = manager.view_finance_records(filter_choice)
-            for record in records:
-                print(
-                    f"ID: {record.id}, Сумма: {record.amount}, Категория: {record.category}, Дата: {record.date}, Описание: {record.description}")
-
-        elif choice == '3':
-            start_date = input("Введите начальную дату (ДД-ММ-ГГГГ): ")
-            end_date = input("Введите конечную дату (ДД-ММ-ГГГГ): ")
-            report = manager.generate_report(start_date, end_date)
-            for record in report:
-                print(
-                    f"ID: {record.id}, Сумма: {record.amount}, Категория: {record.category}, Дата: {record.date}, Описание: {record.description}")
-
-        elif choice == '4':
-            filename = input("Введите имя файла для экспорта (например finance.csv): ")
-            manager.export_to_csv(filename)
-            print(f"Записи экспортированы в {filename}.")
-
-        elif choice == '5':
-            filename = input("Введите имя файла для импорта (например finance.csv): ")
-            manager.import_from_csv(filename)
-            print(f"Записи импортированы из {filename}.")
-
-        elif choice == '6':
+        if choise == 1:
+            try:
+                amount = float(input('Введите сумму: '))
+                category = input('Введите категорию: ')
+                date = input('Введите дату в формате ДД-ММ-ГГГГ: ')
+                description = input('Введите описание: ')
+                manager.add_record(description, amount, category, date)
+            except ValueError:
+                print('Некорректная сумма')
+        elif choise == 2:
+            filter_data = input('Введите дату в формате ДД-ММ-ГГГГ: ') or None
+            filter_category = input('Введите категорию: ') or None
+            manager.view_records(filter_data, filter_category)
+        elif choise == 3:
+            start_date = input('Введите начальную дату в формате ДД-ММ-ГГГГ: ')
+            end_date = input('Введите конечную дату в формате ДД-ММ-ГГГГ: ')
+            manager.generate_report(start_date, end_date)
+        elif choise == 4:
+            manager.export_records_to_csv()
+        elif choise == 5:
+            manager.import_records_from_csv()
+        elif choise == 6:
+            manager.calculate_balance()
+        elif choise == 7:
+            manager.group_by_category()
+        elif choise == 8:
             break
+        else:
+            print('Неверный номер действия, попробуйте снова')
 
 
+class Calculator:
+    def __init__(self):
+        pass
+
+    def add(self, num1, num2):
+        return num1 + num2
+
+    def subtract(self, num1, num2):
+        return num1 - num2
+
+    def multiply(self, num1, num2):
+        return num1 * num2
+
+    def divide(self, num1, num2):
+        if num2 == 0:
+            raise ZeroDivisionError("Деление на ноль невозможно")
+        return num1 / num2
+
+    def evaluate_expression(self, expression):
+        try:
+            allowed_chars = "0123456789+-*/(). "
+            if not all(char in allowed_chars for char in expression):
+                raise ValueError("Недопустимые символы в примере")
+            result = eval(expression, {'__builtins__': None}, {})
+            return result
+        except ZeroDivisionError:
+            raise ValueError("Деление на ноль невозможно")
+        except Exception:
+            raise ValueError("Неверный пример")
+
+
+def calculator_menu():
+    calculator = Calculator()
+    while True:
+        print('Калькулятор:')
+        print('1. Сложение')
+        print('2. Вычитание')
+        print('3. Умножение')
+        print('4. Деление')
+        print('5. Вычислить выражение')
+        print('6. Назад')
+
+        choise = int(input('Выберите действие: '))
+
+
+        if choise == 1:
+            try:
+                num1 = float(input('Введите первое число: '))
+                num2 = float(input('Введите второе число: '))
+                result = calculator.add(num1, num2)
+                print(f'Результат: {result}')
+            except ValueError:
+                print('Введите корректные числа')
+        elif choise == 2:
+            try:
+                num1 = float(input('Введите первое число: '))
+                num2 = float(input('Введите второе число: '))
+                result = calculator.subtract(num1, num2)
+                print(f'Результат: {result}')
+            except ValueError:
+                print('Введите корректные числа')
+        elif choise == 3:
+            try:
+                num1 = float(input('Введите первое число: '))
+                num2 = float(input('Введите второе число: '))
+                result = calculator.multiply(num1, num2)
+                print(f'Результат: {result}')
+            except ValueError:
+                print('Введите корректные числа')
+        elif choise == 4:
+            try:
+                num1 = float(input('Введите первое число: '))
+                num2 = float(input('Введите второе число: '))
+                try:
+                    result = calculator.divide(num1, num2)
+                    print(f'Результат: {result}')
+                except ZeroDivisionError:
+                    print('Деление на ноль невозможно')
+            except ValueError:
+                print(f'Ошибка ввода')
+        elif choise == 5:
+            expression = input('Введите пример: ')
+            try:
+                result = calculator.evaluate_expression(expression)
+                print(f'Результат: {result}')
+            except ValueError as e:
+                print(f'Ошибка: {e}')
+        elif choise == 6:
+            break
+        else:
+            print('Невалидный номер действия, попробуйте снова')
 
 
 def main_menu():
     while True:
-        print("Добро пожаловать в Персональный помощник!")
-        print("Выберите действие:")
-        print("1. Управление заметками")
-        print("2. Управление задачами")
-        print("3. Управление контактами")
-        print("4. Управление финансовыми записями")
-        print("5. Калькулятор")
-        print("6. Выход")
-        choice = int(input("Введите номер действия: "))
-        if choice == 1:
+        print('Добро пожаловать в Персональный ассистент!')
+        print('Выберите действие:')
+        print('1. Управление заметками')
+        print('2. Управление задачами')
+        print('3. Управление контактами')
+        print('4. Управление финансовыми записями')
+        print('5. Калькулятор')
+        print('6. Выход')
+
+        choise = int(input('Введите номер действия: '))
+
+        if choise == 1:
             notes_menu()
-        elif choice == 2:
+        elif choise == 2:
             tasks_menu()
-        elif choice == 3:
+        elif choise == 3:
             contacts_menu()
-        elif choice == 4:
+        elif choise == 4:
             finance_menu()
-        elif choice == 5:
+        elif choise == 5:
             calculator_menu()
-        elif choice == 6:
-            print("До свидания")
+        elif choise == 6:
+            print('До новых встреч!')
             break
         else:
-            print('Некорректный ввод\n')
-
+            print('Неверный номер действия, попробуйте снова')
 
 
 if __name__ == '__main__':
     main_menu()
-
-
-
-
-
-
